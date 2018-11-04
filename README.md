@@ -126,8 +126,10 @@ installed.
 
 #### Install host script
 
-To install the host script, locate the extension ID from the Chrome extensions page
-and run the following commands:
+###### Chrome
+
+To install the host script for Chrome, locate the extension ID from the Chrome
+extensions page and run the following commands:
 
 ```bash
 $ extension_id="....."
@@ -135,15 +137,40 @@ $ installer=$(find $HOME/.config -name "mpris_host_setup.py" | grep ${extension_
 $ python3 ${installer} install ${extension_id}
 ```
 
-#### Uninstall host script
+###### Firefox
 
-To uninstall the host script, locate the extension ID from the Chrome extensions page
-and run the following commands:
+To install the host script for Firefox run the following commands:
 
 ```bash
-$ extension_id="....."
-$ installer=$(find $HOME/.config -name "mpris_host_setup.py" | grep ${extension_id})
-$ python3 ${installer} uninstall
+$ xpi=$(find $HOME/.mozilla -name "streamkeys@streamkeys.com.xpi")
+$ tmpdir=$(mktemp -d streamkeys.XXXXXX --tmpdir)
+$ unzip -d ${tmpdir} ${xpi}
+$ python3 ${tmpdir}/native/mpris_host_setup.py install-ff
+$ rm -r ${tmpdir}
+```
+
+#### Uninstall host script
+
+###### Chrome
+
+To uninstall the host script for Chrome, locate the extension ID from the
+Chrome extensions page and run the following commands:
+
+```bash
+$ xpi=$(find $HOME/.mozilla -name "streamkeys@streamkeys.com.xpi")
+$ tmpdir=$(mktemp -d streamkeys.XXXXXX --tmpdir)
+$ unzip -d ${tmpdir} ${xpi}
+$ python3 ${tmpdir}/native/mpris_host_setup.py uninstall-ff
+$ rm -r ${tmpdir}
+```
+
+###### Firefox
+
+To uninstall the host script for Firefox run the following commands:
+
+```bash
+$ installer=$(find $HOME/.mozilla -name "mpris_host_setup.py")
+$ python3 ${installer} uninstall-ff
 ```
 
 ## License (MIT)

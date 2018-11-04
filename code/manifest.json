@@ -37,9 +37,8 @@
     "js/inject/seesu_inject.js",
     "js/controllers/*"
   ],
-  "permissions": ["tabs", "storage", "http://*/*", "https://*/*"],
-  "optional_permissions": [ "notifications", "http://*/*", "https://*/*",
-                            "nativeMessaging"],
+  "permissions": ["tabs", "storage", "http://*/*", "https://*/*", "nativeMessaging"],
+  "optional_permissions": [ "notifications", "http://*/*", "https://*/*"],
   "commands": {
     "playPause": {
       "suggested_key": {

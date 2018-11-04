@@ -384,13 +384,6 @@
         console.log("Starting native messaging host");
         mprisPort = chrome.runtime.connectNative("org.mpris.streamkeys_host");
         mprisPort.onMessage.addListener(handleNativeMsg);
-
-        chrome.runtime.onSuspend.addListener(function() {
-          if (!--connections)
-            mprisPort.postMessage({ command: "quit" });
-            mprisPort.onMessage.removeListener(handleNativeMsg);
-            mprisPort.disconnect();
-        });
       }
     }
   });
