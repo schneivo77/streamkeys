@@ -23,7 +23,7 @@ var OptionsViewModel = function OptionsViewModel() {
 
   self.openExtensionKeysPage = function() {
     chrome.tabs.create({
-      url: "chrome://extensions/configureCommands"
+      url: "about:addons"
     });
   };
 
