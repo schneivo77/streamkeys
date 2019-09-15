@@ -15,8 +15,9 @@ HOST_MANIFEST = {
   "description": "Streamkeys MPRIS native messaging host",
   "path": None,
   "type": "stdio",
-  "allowed_origins": []
+  "allowed_extensions": [ "streamkeys@streamkeys.com" ]
 }
+MANIFEST_JSON_INSTALL_PATH = os.path.expanduser("~/.mozilla/native-messaging-hosts")
 XDG_CONFIG_HOME = os.environ.get("XDG_CONFIG_HOME",
                                  default=os.path.expanduser("~/.config"))
 
@@ -30,7 +31,6 @@ def initialize_parser():
 
     p = subparsers.add_parser("install",
                               help="Install the native messaging host")
-    p.add_argument("id", help="The extension ID")
     p.set_defaults(func=main_install)
 
     p = subparsers.add_parser("uninstall",
@@ -39,12 +39,7 @@ def initialize_parser():
     return parser
 
 
-def get_xdg_config_paths():
-    return [os.path.join(XDG_CONFIG_HOME, "chromium"),
-            os.path.join(XDG_CONFIG_HOME, "google-chrome")]
-
-
-def install_host(ext_id, install_dir):
+def install_host(install_dir):
     # Copy the host script
     host_path = os.path.join(install_dir, HOST_FILENAME)
     os.makedirs(install_dir, exist_ok=True)
@@ -56,20 +51,13 @@ def install_host(ext_id, install_dir):
     os.chmod(host_path, 0o744)
 
     # Create the manifest file
-    xdg_paths = get_xdg_config_paths()
     manifest = dict(HOST_MANIFEST)
     manifest["path"] = host_path
-    manifest["allowed_origins"].append("chrome-extension://%s/" % ext_id)
-    for path in xdg_paths:
-        if not os.path.exists(path):
-            continue
-        message_hosts = os.path.join(path, "NativeMessagingHosts")
-        manifest_path = os.path.join(message_hosts, HOST_MANIFEST_FILENAME)
-
-        os.makedirs(message_hosts, exist_ok=True)
-        with open(manifest_path, "w") as f:
-            json.dump(manifest, f, indent=2)
-        os.chmod(manifest_path, 0o644)
+    os.makedirs(MANIFEST_JSON_INSTALL_PATH, exist_ok=True)
+    manifest_path = os.path.join(MANIFEST_JSON_INSTALL_PATH, HOST_MANIFEST_FILENAME)
+    with open(manifest_path, "w") as f:
+        json.dump(manifest, f, indent=2)
+    os.chmod(manifest_path, 0o644)
 
 
 def uninstall_host(install_dir):
@@ -78,15 +66,11 @@ def uninstall_host(install_dir):
     if os.path.isfile(host_path):
         os.remove(host_path)
 
+
     # Remove manifest file
-    xdg_paths = get_xdg_config_paths()
-    for path in xdg_paths:
-        if not os.path.exists(path):
-            continue
-        message_hosts = os.path.join(path, "NativeMessagingHosts")
-        manifest_path = os.path.join(message_hosts, HOST_MANIFEST_FILENAME)
-        if os.path.isfile(manifest_path):
-            os.remove(manifest_path)
+    manifest_path = os.path.join(MANIFEST_JSON_INSTALL_PATH, HOST_MANIFEST_FILENAME)
+    if os.path.isfile(manifest_path):
+        os.remove(manifest_path)
 
 
 def setup_logger(level=logging.DEBUG):
@@ -109,12 +93,6 @@ def main():
 
 
 def main_install(args):
-    # Chrome's extension IDs are in hexadecimal but using a-p, referred
-    # internally as "mpdecimal". See https://stackoverflow.com/a/2050916
-    if (len(args.id) != 32
-            or any(ord(c) not in range(97, 113) for c in args.id)):
-        raise RuntimeError("Not valid extension ID: %s" % args.id)
-
     try:
         from gi.repository import GLib, Gio  # noqa: F401
     except ImportError:
@@ -127,7 +105,7 @@ def main_install(args):
         raise RuntimeError("Required dependency `python3-pydbus' not"
                            " found")
 
-    install_host(args.id, args.install_dir)
+    install_host(args.install_dir)
 
 
 def main_uninstall(args):

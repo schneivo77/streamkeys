@@ -130,23 +130,19 @@ installed.
 
 #### Install host script
 
-To install the host script, locate the extension ID from the Chrome extensions page
-and run the following commands:
+To install the host script, run the following commands:
 
 ```bash
-$ extension_id="....."
-$ installer=$(find $HOME/.config -name "mpris_host_setup.py" | grep ${extension_id})
-$ python3 ${installer} install ${extension_id}
+$ installer=$(find $HOME/.config -name "mpris_host_setup.py")
+$ python3 ${installer} install
 ```
 
 #### Uninstall host script
 
-To uninstall the host script, locate the extension ID from the Chrome extensions page
-and run the following commands:
+To uninstall the host script, run the following commands:
 
 ```bash
-$ extension_id="....."
-$ installer=$(find $HOME/.config -name "mpris_host_setup.py" | grep ${extension_id})
+$ installer=$(find $HOME/.config -name "mpris_host_setup.py")
 $ python3 ${installer} uninstall
 ```
 
