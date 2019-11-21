@@ -19,10 +19,6 @@
     {
       "matches": ["http://*/*", "https://*/*"],
       "js": ["js/contentscript.js"]
-    },
-    {
-      "matches": ["*://*.streamkeys.com/*"],
-      "js": ["js/inject/sksite_inject.js"]
     }
   ],
   "applications": {
@@ -31,10 +27,6 @@
     }
   },
   "web_accessible_resources": [
-    "js/inject/hoopla_inject.js",
-    "js/inject/musickit_inject.js",
-    "js/inject/palcomp3_inject.js",
-    "js/inject/seesu_inject.js",
     "js/controllers/*"
   ],
   "permissions": ["tabs", "storage", "http://*/*", "https://*/*", "nativeMessaging"],
