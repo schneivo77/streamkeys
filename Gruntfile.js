@@ -19,7 +19,9 @@ module.exports = function(grunt) {
     clean: ["build/unpacked-dev", "build/unpacked-prod", "test-selectors/streamkeys-ext"],
 
     mkdir: {
-      unpacked: { options: { create: ["build/unpacked-dev", "build/unpacked-dev/js", "build/unpacked-prod"] } }
+      unpacked: { options: {
+        mode: "0777",
+        create: ["build/unpacked-dev", "build/unpacked-dev/js", "build/unpacked-prod"] } }
     },
 
     copy: {

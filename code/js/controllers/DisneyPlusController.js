@@ -3,8 +3,7 @@
   var BaseController = require("BaseController");
 
   new BaseController({
-    siteName: "Twitch.tv",
-    song: "[data-a-target='stream-title']",
+    siteName: "Disney Plus",
     media: "video"
   });
 })();
