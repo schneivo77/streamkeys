@@ -2,8 +2,18 @@
 (function() {
   var BaseController = require("BaseController");
 
-  new BaseController({
+  var controller = new BaseController({
     siteName: "Disney Plus",
-    media: "video"
+    playPause: "button.control-icon-btn.play-pause-icon"
   });
+
+  controller.seek = function (time) {
+    if (time > 0) {
+    // press fastworward button
+      controller.doc().querySelector("button.control-icon-btn.ff-10sec-icon").click();
+    } else {
+    // press rewind button
+      controller.doc().querySelector("button.control-icon-btn.rwd-10sec-icon").click();
+    }
+  }
 })();
