@@ -101,7 +101,7 @@
       "iheart": { name: "iHeartRadio", url: "http://www.iheart.com" },
       "imusic": { name: "iMusic", url: "https://imusic.am" },
       "indieshuffle": { name: "indieshuffle", url: "http://www.indieshuffle.com"},
-      "instagram-live": { name: "instagram", url: "https://www.instagram.com", controller: "InstagramLive.js" },
+      "instagram-live": { name: "Instagram Live", url: "https://www.instagram.com", controller: "InstagramLiveController.js", alias:["instagram"] },
       "ivoox": { name: "ivoox", url: "http://www.ivoox.com" },
       "jamendo": { name: "Jamendo", url: "https://www.jamendo.com" },
       "jango": { name: "Jango", url: "http://www.jango.com" },
