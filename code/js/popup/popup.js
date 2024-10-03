@@ -83,6 +83,7 @@ PopupViewModel.prototype.updateState = function(stateData, tab, disabled) {
       tabId: tab.id,
       faviconUrl: tab.favIconUrl,
       priority: tab.streamkeysPriority,
+      secondaryControlsEnabled: tab.secondaryControlsEnabled,
       siteKey: tab.streamkeysSiteKey,
       streamkeysEnabled: typeof tab.streamkeysEnabled !== "undefined" ? tab.streamkeysEnabled : true,
     }));
@@ -153,6 +154,7 @@ var MusicTab = (function() {
       "song",
       "artist",
       "streamkeysEnabled",
+      "secondaryControlsEnabled",
       "priority",
       "isPlaying",
       "canPlayPause",
@@ -210,6 +212,11 @@ var MusicTab = (function() {
     this.toggleStreamkeysEnabled = function() {
       this.streamkeysEnabled(!this.streamkeysEnabled.peek());
       chrome.extension.getBackgroundPage().window.skSites.markTabEnabledState(this.tabId, this.streamkeysEnabled.peek());
+    };
+
+    this.toggleSecondaryControlsEnabled = function() {
+      this.secondaryControlsEnabled(!this.secondaryControlsEnabled.peek());
+      // chrome.extension.getBackgroundPage().window.skSites.markTabEnabledState(this.tabId, this.streamkeysEnabled.peek());
     };
 
     this.displayTime = displayTime;

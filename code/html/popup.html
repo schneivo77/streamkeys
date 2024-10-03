@@ -107,6 +107,12 @@
         css: { active: !$data.streamkeysEnabled() }">
         <i class="material-icons md-dark">not_interested</i>
       </button>
+      <button class="mdl-button mdl-js-button mdl-button--icon player-controls-button" data-bind="click: function() {
+        $data.toggleSecondaryControlsEnabled();
+      },
+      css: { active: !$data.streamkeysEnabled() }">
+      <i class="material-icons md-dark">keyboard</i>
+    </button>
       <div id="volume_container" style="display: flex; align-items: center; justify-content: center">
         <button class="mdl-button mdl-js-button mdl-button--icon player-controls-button" data-bind="click: function() {
             $data.sendAction('addVolume', -0.05);

@@ -39,6 +39,10 @@
       "global": true,
       "description": "Toggle play/pause"
     },
+    "playPauseSecondary": {
+      "global": true,
+      "description": "Toggle play/pause (secondary)"
+    },
     "playNext": {
       "suggested_key": {
         "default": "MediaNextTrack"
@@ -80,9 +84,17 @@
       "global": true,
       "description": "Seek forward"
     },
+    "forward5secondary": {
+      "global": true,
+      "description": "Seek forward (secondary)"
+    },
     "replay5": {
       "global": true,
       "description": "Seek backwards"
+    },
+    "replay5secondary": {
+      "global": true,
+      "description": "Seek backwards (secondary)"
     },
     "volumeup": {
       "global": true,

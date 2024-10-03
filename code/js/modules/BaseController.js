@@ -437,6 +437,7 @@
   BaseController.prototype.doRequest = function (request, sender, response) {
     if (typeof request !== "undefined") {
       if (request.action === "playPause") this.playPause();
+      if (request.action === "playPauseSecondary") this.playPause();
       if (request.action === "playNext") this.playNext();
       if (request.action === "playPrev") this.playPrev();
       if (request.action === "stop") this.stop();
@@ -447,6 +448,8 @@
       if (request.action === "seek") this.seek(request.args[0]);
       if (request.action === "forward5") this.seek(5); // manifest command
       if (request.action === "replay5") this.seek(-5); // manifest command
+      if (request.action === "forward5secondary") this.seek(5); // manifest command
+      if (request.action === "replay5secondary") this.seek(-5); // manifest command
       if (request.action === "playBackRate") this.setPlaybackRate(request.args[0]);
       if (request.action === "volume") {
         // mpris
