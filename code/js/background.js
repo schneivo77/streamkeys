@@ -123,12 +123,69 @@
     }
   };
 
+  var lastCmdTimestamp = 0;
+  var longPressStarted = false;
+  var LONGPRESS_THRESHOLD_MS = 50;
+
   /**
    * Capture hotkeys and send their actions to tab(s) with music player running
    */
-  chrome.commands.onCommand.addListener(function(command) {
-    sendAction(command);
+  chrome.commands.onCommand.addListener(function (command) {
+
+    // TODO: Move longpress code to somewhere else.
+    var timeBetweenCmds = Date.now() - lastCmdTimestamp;
+
+    lastCmdTimestamp = Date.now();
+
+    console.log("command:", command);
+    console.log("timeBetweenCmds:", timeBetweenCmds);
+
+    // TODO: Find a better solution!
+    // The longpress seems to not work with all keyboards.
+    // In my case it worked with a Razer Huntsman which seems to spam command-events when holding the MediaPlayPause key.
+    // A Cherry keyboard only sent one command which doesn't work with the current implementation.
+    if (timeBetweenCmds < LONGPRESS_THRESHOLD_MS
+       && command === "playPause") {
+      if (!longPressStarted) {
+        longPressEventStarted();
+      } {
+        // TODO: The timer solution isn't really nice. Maybe find a better one.
+        restartLongPressEndTimer();
+      }
+    } else {
+      console.log("STANDARD PRESS.");
+      sendAction(command);
+    }
   });
+
+  var longPressEndTimer;
+  var LONGPRESS_END_TIME_MS = 500;
+
+  function restartLongPressEndTimer() {
+    if(longPressEndTimer !== undefined) {
+      console.log("Cancel current timer.");
+      clearTimeout(longPressEndTimer);
+    }
+    longPressEndTimer = setTimeout(function() {
+      console.log("Timer ended!!!");
+      longPressEventEnded();
+    }, LONGPRESS_END_TIME_MS);
+    console.log("Timer started for: " + LONGPRESS_END_TIME_MS + " ms");
+  }
+
+  function longPressEventStarted() {
+    console.log("LONG PRESS EVENT STARTED!!!");
+    longPressStarted = true;
+    // TODO: Handle longpress event only for "playPause" commands.
+    // Or sent longpress as argument and handle somewhere else what action it triggers.
+    sendAction("playBackRate", 2);
+  }
+
+  function longPressEventEnded() {
+    console.log("LONG PRESS EVENT ENDED...");
+    longPressStarted = false;
+    sendAction("playBackRate", 1);
+  }
 
   /**
    * Messages sent from Options page

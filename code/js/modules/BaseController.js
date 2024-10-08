@@ -164,6 +164,16 @@
     }
   };
 
+  BaseController.prototype.setPlaybackRate = function (playbackRate) {
+    // default implementation uses selectors if present
+    if (this.canGetMedia) {
+      var media = this.getMedia();
+      if (media != undefined) {
+        media.playbackRate = playbackRate;
+      }
+    }
+  }
+
   BaseController.prototype.playNext = function () {
     this.click({ action: "playNext", selectorButton: this.selectors.playNext, selectorFrame: this.selectors.iframe });
   };
@@ -437,6 +447,7 @@
       if (request.action === "seek") this.seek(request.args[0]);
       if (request.action === "forward5") this.seek(5); // manifest command
       if (request.action === "replay5") this.seek(-5); // manifest command
+      if (request.action === "playBackRate") this.setPlaybackRate(request.args[0]);
       if (request.action === "volume") {
         // mpris
         this.volume = Math.min(1.0, Math.max(0.0, request.args[0]));
