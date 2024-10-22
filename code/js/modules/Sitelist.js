@@ -199,6 +199,8 @@
     };
 
     this.disabledTabs = [];
+    // TODO: maybe find a better place
+    this.secondaryControlledTabs = [];
   }
 
   /**
@@ -450,6 +452,11 @@
     return (tabId && this.disabledTabs.indexOf(tabId) === -1);
   };
 
+  Sitelist.prototype.checkSecondaryControlsEnabled = function(tabId) {
+    return (tabId && this.secondaryControlledTabs.indexOf(tabId) !== -1);
+  };
+
+
   /**
    * @param {String} url - url of site to check for
    * @return {Boolean} true if url matches a music site
@@ -474,6 +481,21 @@
       if(this.disabledTabs.indexOf(tabId) == -1) this.disabledTabs.push(parseInt(tabId));
     }
   };
+
+
+  /**
+   * @param {Number} tabId - id of tab for which secondary controls are enabled
+   * @param {Boolean} enabled - enable secondary controls if true, disable if false
+   */
+  Sitelist.prototype.markTabSecondaryControlsEnabledState = function(tabId, enabled) {
+    tabId = parseInt(tabId);
+    if(enabled) {
+      if(this.secondaryControlledTabs.indexOf(tabId) == -1) this.secondaryControlledTabs.push(parseInt(tabId));
+    } else {
+      this.secondaryControlledTabs = this.secondaryControlledTabs.filter(function(tab) { return tab !== tabId; });
+    }
+  };
+
 
   /**
    * Gets the filename of a sites controller
@@ -535,11 +557,13 @@
             tab.streamkeysSiteKey = that.getSitelistName(tab.url);
             tab.streamkeysPriority = that.getPriority(tab.streamkeysSiteKey);
             tab.streamkeysEnabled = that.checkTabEnabled(tab.id);
+            tab.secondaryControlsEnabled = that.checkSecondaryControlsEnabled(tab.id);
             musicTabs.enabled.push(tab);
           } else if(that.checkMusicSite(tab.url)) {
             tab.streamkeysSiteKey = that.getSitelistName(tab.url);
             tab.streamkeysPriority = that.getPriority(tab.streamkeysSiteKey);
             tab.streamkeysEnabled = false;
+            tab.secondaryControlsEnabled = that.checkSecondaryControlsEnabled(tab.id);
             musicTabs.disabled.push(tab);
           }
         });

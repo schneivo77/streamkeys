@@ -83,7 +83,7 @@ PopupViewModel.prototype.updateState = function(stateData, tab, disabled) {
       tabId: tab.id,
       faviconUrl: tab.favIconUrl,
       priority: tab.streamkeysPriority,
-      secondaryControlsEnabled: tab.secondaryControlsEnabled,
+      secondaryControlsEnabled: typeof tab.secondaryControlsEnabled !== "undefined" ? tab.secondaryControlsEnabled : true,
       siteKey: tab.streamkeysSiteKey,
       streamkeysEnabled: typeof tab.streamkeysEnabled !== "undefined" ? tab.streamkeysEnabled : true,
     }));
@@ -216,7 +216,7 @@ var MusicTab = (function() {
 
     this.toggleSecondaryControlsEnabled = function() {
       this.secondaryControlsEnabled(!this.secondaryControlsEnabled.peek());
-      // chrome.extension.getBackgroundPage().window.skSites.markTabEnabledState(this.tabId, this.streamkeysEnabled.peek());
+      chrome.extension.getBackgroundPage().window.skSites.markTabSecondaryControlsEnabledState(this.tabId, this.secondaryControlsEnabled.peek());
     };
 
     this.displayTime = displayTime;

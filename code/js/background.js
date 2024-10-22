@@ -50,6 +50,17 @@
    */
   var sendActionSinglePlayer = function(command, tabs, args) {
     if (_.isEmpty(tabs)) return;
+
+    var secondaryControlledTabs = _.filter(tabs, function(tab) {
+      return window.skSites.checkSecondaryControlsEnabled(tab.id);
+    });
+    if(command.toLowerCase().endsWith("secondary")) {
+      tabs = secondaryControlledTabs;
+    } else {
+      // filter out secondary tabs -> only primary controlled tabs
+      tabs = _.difference(tabs, secondaryControlledTabs);
+    }
+
     var playing = getPlayingTabs(tabs);
     if (_.isEmpty(playing)) {
       sendActionAllPlayers(command, [getBestSinglePlayerTab(tabs)], args);
