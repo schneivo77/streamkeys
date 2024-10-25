@@ -47,6 +47,10 @@
    * For "single player mode": if any tabs are playing - sends
    * action to all (as it's not clear which one to prefer)
    * otherwise tries to select best tab to interact with.
+   *
+   * If command comes from secondary controls, send it to the
+   * tabs where secondary controls are enabled. If none is enabled,
+   * the command is sent to the regular controlled tabs.
    */
   var sendActionSinglePlayer = function(command, tabs, args) {
     if (_.isEmpty(tabs)) return;
@@ -54,7 +58,7 @@
     var secondaryControlledTabs = _.filter(tabs, function(tab) {
       return window.skSites.checkSecondaryControlsEnabled(tab.id);
     });
-    if(command.toLowerCase().endsWith("secondary")) {
+    if (secondaryControlledTabs.length > 0 && command.toLowerCase().endsWith("secondary")) {
       tabs = secondaryControlledTabs;
     } else {
       // filter out secondary tabs -> only primary controlled tabs
