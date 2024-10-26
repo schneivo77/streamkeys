@@ -109,7 +109,8 @@
       </button>
       <button class="mdl-button mdl-js-button player-controls-button" data-bind="click: function() {
         $data.toggleSecondaryControlsEnabled();
-      }">
+      },
+      visible: $data.secondaryControlsVisible">
       <i class="material-icons md-dark">keyboard</i>
       <i class="material-icons md-dark" data-bind="text: $data.secondaryControlsEnabled() ? 'check_box' : 'check_box_outline_blank'"></i>
     </button>

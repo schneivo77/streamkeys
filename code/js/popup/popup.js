@@ -16,22 +16,22 @@ var PopupViewModel = function PopupViewModel() {
   self.disabledSitesOpen = ko.observable(false);
 
   // Filter hidden players and sort by priority -> siteName -> tabId
-  self.sortedMusicTabs = ko.pureComputed(function() {
+  self.sortedMusicTabs = ko.pureComputed(function () {
     var filteredGrouped = _.groupBy(
-      _.filter(self.musicTabs(), function(tab) {
+      _.filter(self.musicTabs(), function (tab) {
         return (tab.canPlayPause() || !tab.hidePlayer);
       }),
-      function(tab) { return tab.priority(); }
+      function (tab) { return tab.priority(); }
     );
 
     var sortedKeys = _.sortBy(
       _.keys(filteredGrouped),
-      function(priority) { return priority * -1; }
+      function (priority) { return priority * -1; }
     );
 
     var filteredGroupedSorted = [];
 
-    _.forEach(sortedKeys, function(key) {
+    _.forEach(sortedKeys, function (key) {
       filteredGroupedSorted.push(
         _.sortBy(
           filteredGrouped[key], ["siteName", "tabId"]
@@ -42,14 +42,14 @@ var PopupViewModel = function PopupViewModel() {
     return _.flatten(filteredGroupedSorted);
   });
 
-  self.isLoaded = ko.pureComputed(function() {
+  self.isLoaded = ko.pureComputed(function () {
     return self.musicTabsLoaded() == self.totalMusicTabs();
   });
 
   self.visibleMusicTabs = ko.observableArray([]);
   self.optionsUrl = ko.observable(chrome.runtime.getURL("html/options.html"));
 
-  self.openOptionsPage = function() {
+  self.openOptionsPage = function () {
     window.open(self.optionsUrl());
   };
 
@@ -57,25 +57,25 @@ var PopupViewModel = function PopupViewModel() {
   chrome.runtime.sendMessage({ action: "get_music_tabs" }, self.getTabStates.bind(this));
 
   // Setup listener for updating the popup state
-  chrome.runtime.onMessage.addListener(function(request) {
-    if(request.action === "update_popup_state" && request.stateData) self.updateState(request.stateData, request.fromTab);
+  chrome.runtime.onMessage.addListener(function (request) {
+    if (request.action === "update_popup_state" && request.stateData) self.updateState(request.stateData, request.fromTab);
   });
 };
 
-PopupViewModel.prototype.updateState = function(stateData, tab, disabled) {
-  if(typeof stateData == "undefined") return false;
+PopupViewModel.prototype.updateState = function (stateData, tab, disabled) {
+  if (typeof stateData == "undefined") return false;
 
   var self = this;
 
   var musicTab = _.find(
     _.union(this.musicTabs.peek(), this.disabledMusicTabs.peek()),
-    function(itTab) { return itTab.tabId == tab.id; }
+    function (itTab) { return itTab.tabId == tab.id; }
   );
 
-  if(musicTab) {
+  if (musicTab) {
     // Update observables
-    _.forEach(musicTab.observableProperties, function(property) {
-      if(typeof stateData[property] !== "undefined") musicTab[property](stateData[property]);
+    _.forEach(musicTab.observableProperties, function (property) {
+      if (typeof stateData[property] !== "undefined") musicTab[property](stateData[property]);
     });
   } else {
     // Create new tab
@@ -88,37 +88,37 @@ PopupViewModel.prototype.updateState = function(stateData, tab, disabled) {
       streamkeysEnabled: typeof tab.streamkeysEnabled !== "undefined" ? tab.streamkeysEnabled : true,
     }));
 
-    if(disabled) {
+    if (disabled) {
       this.disabledMusicTabs.push(musicTab);
     } else {
       this.musicTabs.push(musicTab);
     }
 
     // Subscribe to each sites priority to maintain state if multiple tabs are open
-    musicTab.priority.subscribe(function(newPriority) {
-      _.forEach(self.musicTabs(), function(tab) {
-        if(tab.siteKey === this.siteKey && tab.tabId !== this.tabId && tab.priority() !== newPriority) {
+    musicTab.priority.subscribe(function (newPriority) {
+      _.forEach(self.musicTabs(), function (tab) {
+        if (tab.siteKey === this.siteKey && tab.tabId !== this.tabId && tab.priority() !== newPriority) {
           tab.priority(newPriority);
         }
       }, this);
     }, musicTab);
   }
   var timeContainer = document.getElementById("time_container");
-  if(musicTab.canSeek()) {
+  if (musicTab.canSeek()) {
     var time = parseInt(musicTab.currentTime() / (1000 * 1000));
     var duration = parseInt(musicTab.totalTime() / (1000 * 1000));
     displayTime(time, duration);
-    if(timeContainer) timeContainer.style.display = "flex";
+    if (timeContainer) timeContainer.style.display = "flex";
   } else {
-    if(timeContainer) timeContainer.style.display = "none";
+    if (timeContainer) timeContainer.style.display = "none";
   }
   var volumeContainer = document.getElementById("volume_container");
-  if(musicTab.canSetVolume()) {
+  if (musicTab.canSetVolume()) {
     var volume = Math.round(musicTab.volume() * 100);
     displayVolume(volume);
-    if(volumeContainer) volumeContainer.style.display = "flex";
+    if (volumeContainer) volumeContainer.style.display = "flex";
   } else {
-    if(volumeContainer) volumeContainer.style.display = "none";
+    if (volumeContainer) volumeContainer.style.display = "none";
   }
   window.componentHandler.upgradeDom();
 };
@@ -127,26 +127,26 @@ PopupViewModel.prototype.updateState = function(stateData, tab, disabled) {
  * Query each active music tab for the player state, then update the popup state
  * @param {Array} tabs - array of active music tabs
  */
-PopupViewModel.prototype.getTabStates = function(tabs) {
+PopupViewModel.prototype.getTabStates = function (tabs) {
   var that = this;
   that.totalMusicTabs(tabs.enabled.length + tabs.disabled.length);
 
-  _.forEach(tabs.enabled, function(tab) {
-    chrome.tabs.sendMessage(tab.id, { action: "getPlayerState" }, (function(playerState) {
+  _.forEach(tabs.enabled, function (tab) {
+    chrome.tabs.sendMessage(tab.id, { action: "getPlayerState" }, (function (playerState) {
       that.updateState(playerState, this.tab);
       that.musicTabsLoaded(that.musicTabsLoaded.peek() + 1);
     }).bind({ tab: tab }));
   });
 
-  _.forEach(tabs.disabled, function(tab) {
-    chrome.tabs.sendMessage(tab.id, { action: "getPlayerState" }, (function(playerState) {
+  _.forEach(tabs.disabled, function (tab) {
+    chrome.tabs.sendMessage(tab.id, { action: "getPlayerState" }, (function (playerState) {
       that.updateState(playerState, this.tab, true);
       that.musicTabsLoaded(that.musicTabsLoaded.peek() + 1);
     }).bind({ tab: tab }));
   });
 };
 
-var MusicTab = (function() {
+var MusicTab = (function () {
   function MusicTab(attributes) {
     var self = this;
 
@@ -173,20 +173,20 @@ var MusicTab = (function() {
     _.assign(this, attributes);
 
     /** Override observables **/
-    _.forEach(this.observableProperties, (function(property) {
+    _.forEach(this.observableProperties, (function (property) {
       this[property] = ko.observable(typeof attributes[property] !== "undefined" ? attributes[property] : null);
     }).bind(this));
 
     /** Popup specific observables **/
-    this.songArtistText = ko.pureComputed(function() {
-      if(!this.song()) return "";
+    this.songArtistText = ko.pureComputed(function () {
+      if (!this.song()) return "";
 
       return (this.artist()) ? this.artist() + " - " + this.song() : this.song();
     }, this);
 
     this.settingsOpen = ko.observable(false);
 
-    this.priority.subscribe(function(priority) {
+    this.priority.subscribe(function (priority) {
       chrome.runtime.sendMessage({
         action: "update_site_settings",
         siteKey: self.siteKey,
@@ -196,7 +196,7 @@ var MusicTab = (function() {
       });
     });
 
-    this.sendAction = function(action, ...args) {
+    this.sendAction = function (action, ...args) {
       chrome.runtime.sendMessage({
         action: "command",
         args: args,
@@ -205,19 +205,43 @@ var MusicTab = (function() {
       });
     };
 
-    this.openTab = function() {
+    this.openTab = function () {
       chrome.tabs.update(parseInt(this.tabId), { selected: true });
     };
 
-    this.toggleStreamkeysEnabled = function() {
+    this.toggleStreamkeysEnabled = function () {
       this.streamkeysEnabled(!this.streamkeysEnabled.peek());
       chrome.extension.getBackgroundPage().window.skSites.markTabEnabledState(this.tabId, this.streamkeysEnabled.peek());
     };
 
-    this.toggleSecondaryControlsEnabled = function() {
+    this.toggleSecondaryControlsEnabled = function () {
       this.secondaryControlsEnabled(!this.secondaryControlsEnabled.peek());
       chrome.extension.getBackgroundPage().window.skSites.markTabSecondaryControlsEnabledState(this.tabId, this.secondaryControlsEnabled.peek());
     };
+
+    this.secondaryControlsVisible = ko.observable(false);
+
+    this.updateSecondaryControlsVisibility = async () => {
+      const isSet = await this.secondaryControlsSet();
+      this.secondaryControlsVisible(isSet);
+    };
+
+    this.secondaryControlsSet = function () {
+      return new Promise((resolve) => {
+        chrome.commands.getAll((commands) => {
+          const hasShortcut = (name) => {
+            const command = commands.find(cmd => cmd.name === name);
+            return command && command.shortcut;
+          };
+          const hasAnyShortcut = hasShortcut("playPauseSecondary")
+                              || hasShortcut("replay5secondary")
+                              || hasShortcut("forward5secondary");
+          resolve(hasAnyShortcut);
+        });
+      });
+    };
+
+    this.updateSecondaryControlsVisibility();
 
     this.displayTime = displayTime;
 
@@ -227,16 +251,16 @@ var MusicTab = (function() {
   return MusicTab;
 })();
 
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
   window.popup = new PopupViewModel();
 
   ko.applyBindings(window.popup);
 
   ko.bindingHandlers.scrollingSong = {
-    update: function(element, valueAccessor) {
+    update: function (element, valueAccessor) {
       element.querySelector(".song-text").textContent = ko.unwrap(valueAccessor());
 
-      if(element.querySelector(".song-text").scrollWidth > document.querySelector("#player").clientWidth) {
+      if (element.querySelector(".song-text").scrollWidth > document.querySelector("#player").clientWidth) {
         var content = element.querySelector(".song-text").innerHTML;
 
         element.querySelector(".song-text").innerHTML = "<marquee>" + content + "</marquee>";
@@ -245,10 +269,10 @@ document.addEventListener("DOMContentLoaded", function() {
   };
 
   ko.bindingHandlers.slideMenu = {
-    update: function(element, valueAccessor) {
+    update: function (element, valueAccessor) {
       var value = ko.unwrap(valueAccessor());
 
-      if(value) {
+      if (value) {
         element.style.display = "block";
       } else {
         element.style.display = "none";
@@ -259,7 +283,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
 function displayTime(time, duration) {
   var timeSlider = document.getElementById("time_slider");
-  if(timeSlider != undefined) {
+  if (timeSlider != undefined) {
     // we have to set max before min on the dom element
     timeSlider.max = duration;
     timeSlider.value = time;
@@ -272,7 +296,7 @@ function displayTime(time, duration) {
 
 function displayVolume(volume) {
   var volSlider = document.getElementById("vol_slider");
-  if(volSlider != undefined) {
+  if (volSlider != undefined) {
     document.getElementById("vol_slider").value = volume;
     document.getElementById("vol_perc").innerHTML = (volume + "%").padStart(4);
   }
