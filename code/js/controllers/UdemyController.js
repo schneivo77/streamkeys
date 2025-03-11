@@ -12,6 +12,6 @@
     mute: "[data-purpose=volume-control-button]",
     playState: ".vjs-playing",
     buttonSwitch: true,
-    media: ".vjs-tech"
+    media: "video"
   });
 })();
