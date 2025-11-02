@@ -28,4 +28,20 @@
     return null;
   };
 
+  controller.playPause = function () {
+    // copied from BaseController since idk how to call super.playPause
+    var media = this.getMedia();
+    if (media) {
+      if (this.isPlaying()) {
+        media.pause();
+        // show seekbar
+        document.querySelector(".ytp-chrome-bottom").style.opacity = 1
+      } else {
+        media.play();
+        // use YouTube's default opacity behaviour
+        document.querySelector(".ytp-chrome-bottom").style.opacity = ""
+      }
+    }
+  }
+
 })();
