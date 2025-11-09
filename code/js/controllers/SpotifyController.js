@@ -5,8 +5,8 @@
   var controller = new BaseController({
     play: "[data-testid=control-button-playpause][aria-label=Play]",
     pause: "[data-testid=control-button-playpause][aria-label=Pause]",
-    playPrev: ".player-controls__left button:nth-child(2)",
-    playNext: "[data-testid=control-button-skip-forward]",
+    playPrev: "[data-testid='control-button-skip-back']",
+    playNext: "[data-testid='control-button-skip-forward']",
     like: "button[aria-label='Save to Your Library'].control-button-heart",
     dislike: "button[aria-label='Remove from Your Library'].control-button-heart",
     buttonSwitch: true,
@@ -22,11 +22,11 @@
 
   controller.seek = function (time) {
     if (time > 0) {
-    // skip forward 15 secs
-      controller.doc().querySelector(".player-controls__right button:nth-child(2)").click();
+      // skip forward 15 secs
+      controller.doc().querySelector("[data-testid='control-button-seek-forward-15']").click();
     } else {
-    // skip back 15 secs
-      controller.doc().querySelector(".player-controls__left button:nth-child(1)").click();
+      // skip back 15 secs
+      controller.doc().querySelector("[data-testid='control-button-seek-back-15']").click();
     }
   }
 
