@@ -1,28 +1,36 @@
 "use strict";
 (function() {
-  var code = `
-  if (window.skOldCreateElement == undefined) {
-    console.log("adding media interceptor");
-    window.skOldCreateElement = document.createElement;
-    window.skMedias = [];
-    document.createElement = function(...args) {
-      var element = window.skOldCreateElement.apply(document, args);
-      if(args.length > 0 && args[0] == "video") {
-        document.querySelector("#skMedias").append(element);
-        window.skMedias.push(element);
+  if (window.skOldCreateElement !== undefined) {
+    return;
+  }
+
+  console.log("adding media interceptor");
+
+  var root = document.head || document.documentElement;
+  var mediaContainer = document.getElementById("skMedias");
+
+  if (!mediaContainer) {
+    mediaContainer = document.createElement("div");
+    mediaContainer.id = "skMedias";
+    mediaContainer.style.display = "none";
+    root.appendChild(mediaContainer);
+  }
+
+  window.skOldCreateElement = document.createElement.bind(document);
+  window.skMedias = window.skMedias || [];
+
+  document.createElement = function() {
+    var element = window.skOldCreateElement.apply(document, arguments);
+    var tagName = arguments.length > 0 ? String(arguments[0]).toLowerCase() : "";
+
+    if (tagName === "video" || tagName === "audio") {
+      var container = document.getElementById("skMedias");
+      if (container) {
+        container.appendChild(element);
       }
-      if(args.length > 0 && args[0] == "audio") {
-        document.querySelector("#skMedias").append(element);
-        window.skMedias.push(element);
-      }
-      return element;
-    };
-  }`;
-  var mediaContainer = document.createElement("div");
-  mediaContainer.id = "skMedias";
-  (document.head||document.documentElement).appendChild(mediaContainer);
-  var script = document.createElement("script");
-  script.textContent = code;
-  (document.head||document.documentElement).appendChild(script);
-  script.remove();
+      window.skMedias.push(element);
+    }
+
+    return element;
+  };
 })();

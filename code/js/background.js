@@ -19,16 +19,42 @@
   var skSites = new Sitelist();
   var ignoreTabIds = [];
 
-  var executeScriptFile = function(tabId, file, injectImmediately, callback) {
+  var executeScriptFile = function(tabId, file, injectImmediately, world, callback) {
+    if (typeof world === "function") {
+      callback = world;
+      world = "ISOLATED";
+    }
+
     chrome.scripting.executeScript({
       target: { tabId: tabId },
       files: [file],
-      injectImmediately: !!injectImmediately
+      injectImmediately: !!injectImmediately,
+      world: world || "ISOLATED"
     }, function() {
       if (chrome.runtime.lastError) {
         console.log("Failed to inject " + file + " into tab " + tabId + ": " + chrome.runtime.lastError.message);
       }
       if (callback) callback();
+    });
+  };
+
+  var sendTabMessage = function(tabId, message) {
+    chrome.tabs.sendMessage(tabId, message, function() {
+      if (chrome.runtime.lastError &&
+          chrome.runtime.lastError.message &&
+          chrome.runtime.lastError.message.indexOf("Receiving end does not exist") === -1) {
+        console.log("Failed to send tab message to " + tabId + ": " + chrome.runtime.lastError.message);
+      }
+    });
+  };
+
+  var sendRuntimeMessage = function(message) {
+    chrome.runtime.sendMessage(message, function() {
+      if (chrome.runtime.lastError &&
+          chrome.runtime.lastError.message &&
+          chrome.runtime.lastError.message.indexOf("Receiving end does not exist") === -1) {
+        console.log("Failed to send runtime message: " + chrome.runtime.lastError.message);
+      }
     });
   };
 
@@ -117,7 +143,7 @@
       if(args != undefined) {
         message.args = args;
       }
-      chrome.tabs.sendMessage(tab.id, message);
+      sendTabMessage(tab.id, message);
       console.log("Sent: " + command + " To: " + tab.url);
     });
   };
@@ -132,7 +158,7 @@
       if(request.args != undefined) {
         message.args = request.args;
       }
-      chrome.tabs.sendMessage(parseInt(request.tab_target), message);
+      sendTabMessage(parseInt(request.tab_target), message);
       console.log("Single tab request. Sent: " + request.command + " To: " + request.tab_target);
     } else {
       sendAction(request.command);
@@ -198,7 +224,7 @@
         "timestamp": Date.now(),
         "state": request.stateData
       };
-      chrome.runtime.sendMessage({
+      sendRuntimeMessage({
         action: "update_popup_state",
         stateData: request.stateData,
         fromTab: sender.tab
@@ -474,7 +500,7 @@
         if (index !== -1) {
           ignoreTabIds.splice(index, 1);
           // media interceptor
-          executeScriptFile(tabId, "js/modules/MediaInterceptor.js", true);
+          executeScriptFile(tabId, "js/modules/MediaInterceptor.js", true, "MAIN");
           console.log("Inject: js/modules/MediaInterceptor.js into: " + tabId);
           // js patches
           var patchfile = skSites.getPatch(tab.url);
