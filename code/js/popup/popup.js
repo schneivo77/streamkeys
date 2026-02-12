@@ -2,7 +2,319 @@
 
 var ko = require("ko"),
   _ = require("lodash");
+var CspBindingProvider = require("../modules/CspBindingProvider.js").CspBindingProvider;
 require("material-design-lite");
+
+var resolvePopupBindingAccessors = function(binding, bindingContext) {
+  var data = bindingContext.$data;
+  var parentData = bindingContext.$parent;
+
+  switch(binding) {
+  case "visible: $data.sortedMusicTabs().length == 0 && $data.isLoaded()":
+    return {
+      visible: function() {
+        return data.sortedMusicTabs().length === 0 && data.isLoaded();
+      }
+    };
+  case "css: { disabled: !$data.streamkeysEnabled() }, template: { name: 'site-template' }":
+    return {
+      css: function() {
+        return { disabled: !data.streamkeysEnabled() };
+      },
+      template: function() {
+        return { name: "site-template" };
+      }
+    };
+  case "click: function() { $data.disabledSitesOpen(!$data.disabledSitesOpen.peek()); }":
+    return {
+      click: function() {
+        return function() {
+          data.disabledSitesOpen(!data.disabledSitesOpen.peek());
+        };
+      }
+    };
+  case "text: $data.disabledSitesOpen() ? 'Hide Disabled Sites' : 'Show Disabled Sites'":
+    return {
+      text: function() {
+        return data.disabledSitesOpen() ? "Hide Disabled Sites" : "Show Disabled Sites";
+      }
+    };
+  case "text: $data.disabledSitesOpen() ? 'arrow_drop_up' : 'arrow_drop_down'":
+    return {
+      text: function() {
+        return data.disabledSitesOpen() ? "arrow_drop_up" : "arrow_drop_down";
+      }
+    };
+  case "slideMenu: $data.disabledSitesOpen":
+    return {
+      slideMenu: function() {
+        return data.disabledSitesOpen;
+      }
+    };
+  case "template: { name: 'site-template' }":
+    return {
+      template: function() {
+        return { name: "site-template" };
+      }
+    };
+  case "click: $data.openOptionsPage":
+    return {
+      click: function() {
+        return data.openOptionsPage;
+      }
+    };
+  case "click: function() { window.open('http://www.streamkeys.com/guide.html'); }":
+    return {
+      click: function() {
+        return function() {
+          window.open("http://www.streamkeys.com/guide.html");
+        };
+      }
+    };
+  case "click: function() { window.open('http://www.streamkeys.com/donate.html'); }":
+    return {
+      click: function() {
+        return function() {
+          window.open("http://www.streamkeys.com/donate.html");
+        };
+      }
+    };
+  case "text: $data.priority":
+    return {
+      text: function() {
+        return data.priority;
+      }
+    };
+  case "click: function() { $data.openTab() }":
+    return {
+      click: function() {
+        return function() {
+          data.openTab();
+        };
+      }
+    };
+  case "attr: { src: $data.faviconUrl }":
+    return {
+      attr: function() {
+        return { src: data.faviconUrl };
+      }
+    };
+  case "text: $data.siteName":
+    return {
+      text: function() {
+        return data.siteName;
+      }
+    };
+  case "scrollingSong: $data.songArtistText, visible: $data.songArtistText().length":
+    return {
+      scrollingSong: function() {
+        return data.songArtistText;
+      },
+      visible: function() {
+        return data.songArtistText().length;
+      }
+    };
+  case "click: function() { $data.settingsOpen(!$data.settingsOpen.peek()); }":
+    return {
+      click: function() {
+        return function() {
+          data.settingsOpen(!data.settingsOpen.peek());
+        };
+      }
+    };
+  case "click: function() { $data.sendAction('playPrev'); }, css: { 'mdl-button--disabled': !$data.canPlayPrev() }":
+    return {
+      click: function() {
+        return function() {
+          data.sendAction("playPrev");
+        };
+      },
+      css: function() {
+        return { "mdl-button--disabled": !data.canPlayPrev() };
+      }
+    };
+  case "click: function() { $data.sendAction('dislike'); }, css: { 'mdl-button--disabled': !$data.canDislike() }":
+    return {
+      click: function() {
+        return function() {
+          data.sendAction("dislike");
+        };
+      },
+      css: function() {
+        return { "mdl-button--disabled": !data.canDislike() };
+      }
+    };
+  case "click: function() { $data.sendAction('playPause'); }":
+    return {
+      click: function() {
+        return function() {
+          data.sendAction("playPause");
+        };
+      }
+    };
+  case "text: $data.isPlaying() ? 'pause_arrow' : 'play_arrow'":
+    return {
+      text: function() {
+        return data.isPlaying() ? "pause_arrow" : "play_arrow";
+      }
+    };
+  case "click: function() { $data.sendAction('like'); }, css: { 'mdl-button--disabled': !$data.canLike() }":
+    return {
+      click: function() {
+        return function() {
+          data.sendAction("like");
+        };
+      },
+      css: function() {
+        return { "mdl-button--disabled": !data.canLike() };
+      }
+    };
+  case "click: function() { $data.sendAction('playNext'); }, css: { 'mdl-button--disabled': !$data.canPlayNext() }":
+    return {
+      click: function() {
+        return function() {
+          data.sendAction("playNext");
+        };
+      },
+      css: function() {
+        return { "mdl-button--disabled": !data.canPlayNext() };
+      }
+    };
+  case "click: function() { $data.toggleStreamkeysEnabled(); }, css: { active: !$data.streamkeysEnabled() }":
+    return {
+      click: function() {
+        return function() {
+          data.toggleStreamkeysEnabled();
+        };
+      },
+      css: function() {
+        return { active: !data.streamkeysEnabled() };
+      }
+    };
+  case "click: function() { $data.sendAction('addVolume', -0.05); }, css: { 'mdl-button--disabled': !$data.canSetVolume() }":
+    return {
+      click: function() {
+        return function() {
+          data.sendAction("addVolume", -0.05);
+        };
+      },
+      css: function() {
+        return { "mdl-button--disabled": !data.canSetVolume() };
+      }
+    };
+  case "event: { input: function() { var volume = document.getElementById('vol_slider').value; $data.volume = function() { return volume / 100; }; $data.sendAction('volume', volume / 100); $data.displayVolume(volume); }}":
+    return {
+      event: function() {
+        return {
+          input: function() {
+            var volume = document.getElementById("vol_slider").value;
+            data.volume = function() { return volume / 100; };
+            data.sendAction("volume", volume / 100);
+            data.displayVolume(volume);
+          }
+        };
+      }
+    };
+  case "click: function() { $data.sendAction('addVolume', 0.05); }, css: { 'mdl-button--disabled': !$data.canSetVolume() }":
+    return {
+      click: function() {
+        return function() {
+          data.sendAction("addVolume", 0.05);
+        };
+      },
+      css: function() {
+        return { "mdl-button--disabled": !data.canSetVolume() };
+      }
+    };
+  case "click: function() { $data.sendAction('mute'); }, css: { 'mdl-button--disabled': !$data.canMute() }":
+    return {
+      click: function() {
+        return function() {
+          data.sendAction("mute");
+        };
+      },
+      css: function() {
+        return { "mdl-button--disabled": !data.canMute() };
+      }
+    };
+  case "event: { input: function() { var timeSlider = document.getElementById('time_slider'); var time = timeSlider.value; var duration = timeSlider.max; $data.current_time = function() { return time * 1000 * 1000; }; $data.total_time = function() { return duration * 1000 * 1000; }; $data.sendAction('position', time); $data.displayTime(time, duration); }}":
+    return {
+      event: function() {
+        return {
+          input: function() {
+            var timeSlider = document.getElementById("time_slider");
+            var time = timeSlider.value;
+            var duration = timeSlider.max;
+            data.current_time = function() { return time * 1000 * 1000; };
+            data.total_time = function() { return duration * 1000 * 1000; };
+            data.sendAction("position", time);
+            data.displayTime(time, duration);
+          }
+        };
+      }
+    };
+  case "slideMenu: $data.settingsOpen":
+    return {
+      slideMenu: function() {
+        return data.settingsOpen;
+      }
+    };
+  case "click: function() { if ($data.priority.peek() > 1) $data.priority($data.priority.peek() - 1); }, css: { 'mdl-button--disabled': $data.priority() <= 1 }":
+    return {
+      click: function() {
+        return function() {
+          if (data.priority.peek() > 1) data.priority(data.priority.peek() - 1);
+        };
+      },
+      css: function() {
+        return { "mdl-button--disabled": data.priority() <= 1 };
+      }
+    };
+  case "text: $data.priority()":
+    return {
+      text: function() {
+        return data.priority();
+      }
+    };
+  case "click: function() { if ($data.priority.peek() < 9) $data.priority($data.priority.peek() + 1); }, css: { 'mdl-button--disabled': $data.priority() >= 9 }":
+    return {
+      click: function() {
+        return function() {
+          if (data.priority.peek() < 9) data.priority(data.priority.peek() + 1);
+        };
+      },
+      css: function() {
+        return { "mdl-button--disabled": data.priority() >= 9 };
+      }
+    };
+  case "click: $parent.openOptionsPage":
+    return {
+      click: function() {
+        return parentData.openOptionsPage;
+      }
+    };
+  case "foreach: $data.sortedMusicTabs":
+    return {
+      foreach: function() {
+        return data.sortedMusicTabs;
+      }
+    };
+  case "if: $data.disabledMusicTabs().length > 0 && $data.isLoaded":
+    return {
+      if: function() {
+        return data.disabledMusicTabs().length > 0 && data.isLoaded;
+      }
+    };
+  case "foreach: $data.disabledMusicTabs":
+    return {
+      foreach: function() {
+        return data.disabledMusicTabs;
+      }
+    };
+  default:
+    return null;
+  }
+};
 
 var PopupViewModel = function PopupViewModel() {
   var self = this;
@@ -225,9 +537,9 @@ var MusicTab = (function() {
 })();
 
 document.addEventListener("DOMContentLoaded", function() {
-  window.popup = new PopupViewModel();
+  ko.bindingProvider.instance = new CspBindingProvider(resolvePopupBindingAccessors);
 
-  ko.applyBindings(window.popup);
+  window.popup = new PopupViewModel();
 
   ko.bindingHandlers.scrollingSong = {
     update: function(element, valueAccessor) {
@@ -252,6 +564,8 @@ document.addEventListener("DOMContentLoaded", function() {
       }
     }
   };
+
+  ko.applyBindings(window.popup);
 });
 
 function displayTime(time, duration) {
