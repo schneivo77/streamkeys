@@ -15,6 +15,22 @@
    * Look ./modules/BaseController.js getStateData method for what is state.
    */
   var tabStates = {};
+  var commandsList = [];
+  var skSites = new Sitelist();
+  var ignoreTabIds = [];
+
+  var executeScriptFile = function(tabId, file, injectImmediately, callback) {
+    chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      files: [file],
+      injectImmediately: !!injectImmediately
+    }, function() {
+      if (chrome.runtime.lastError) {
+        console.log("Failed to inject " + file + " into tab " + tabId + ": " + chrome.runtime.lastError.message);
+      }
+      if (callback) callback();
+    });
+  };
 
   /**
    * Send a player action to every active player tab if it's state command
@@ -23,7 +39,7 @@
    * @param {String} command - name of the command to pass to the players
    */
   var sendAction = function(command, ...args) {
-    var active_tabs = window.skSites.getActiveMusicTabs();
+    var active_tabs = skSites.getActiveMusicTabs();
     active_tabs.then(function(tabs) {
       if (command === "mute" ||
           command === "stop" ||
@@ -135,36 +151,49 @@
    */
   chrome.runtime.onMessage.addListener(function(request, sender, response) {
     if(request.action === "update_keys") {
-      window.skSites.loadSettings();
+      skSites.loadSettings();
     }
     if(request.action === "update_site_settings") {
       console.log("updating site settings: ", request.siteKey, request.siteState);
-      window.skSites.setSiteState(request.siteKey, request.siteState).then(function() {
+      skSites.setSiteState(request.siteKey, request.siteState).then(function() {
         response(true);
       });
+      return true;
     }
     if(request.action === "get_sites") {
-      response(window.skSites.sites);
+      response(skSites.sites);
     }
     if(request.action === "get_site_controller") {
-      response(window.skSites.getController(sender.tab.url));
+      response(sender.tab ? skSites.getController(sender.tab.url) : null);
     }
     if(request.action === "inject_controller") {
+      if (!sender.tab || !sender.tab.id) {
+        response(false);
+        return;
+      }
       console.log("Inject: " + request.file + " into: " + sender.tab.id);
-      chrome.tabs.executeScript(sender.tab.id, {file: request.file});
-      if (mprisPort) mprisPort.postMessage({ command: "add_player" });
+      executeScriptFile(sender.tab.id, request.file, false, function() {
+        if (mprisPort) mprisPort.postMessage({ command: "add_player" });
+        response(true);
+      });
+      return true;
     }
     if(request.action === "check_music_site") {
       /**
        * A tab index of -1 means that the tab is "embedded" in a page
        * We should only inject into actual tabs
        */
-      if(sender.tab.index === -1) return response("no_inject");
-      response(window.skSites.checkMusicSite(sender.tab.url));
+      if(!sender.tab || sender.tab.index === -1) return response("no_inject");
+      response(skSites.checkMusicSite(sender.tab.url));
     }
-    if(request.action === "get_commands") response(window.coms);
+    if(request.action === "get_commands") response(commandsList);
     if(request.action === "command") processCommand(request);
+    if(request.action === "mark_tab_enabled_state") {
+      skSites.markTabEnabledState(request.tabId, request.enabled);
+      response(true);
+    }
     if(request.action === "update_player_state") {
+      if (!sender.tab) return;
       tabStates[sender.tab.id] = {
         "timestamp": Date.now(),
         "state": request.stateData
@@ -177,7 +206,7 @@
       if (mprisPort) handleStateData(updateMPRISState);
     }
     if(request.action === "get_music_tabs") {
-      var musicTabs = window.skSites.getMusicTabs();
+      var musicTabs = skSites.getMusicTabs();
       musicTabs.then(function(tabs) {
         response(tabs);
       });
@@ -185,8 +214,9 @@
       return true;
     }
     if(request.action === "send_change_notification") {
-      if (window.skSites.checkShowNotifications(sender.tab.url) &&
-          window.skSites.checkTabEnabled(sender.tab.id)) {
+      if (sender.tab &&
+          skSites.checkShowNotifications(sender.tab.url) &&
+          skSites.checkTabEnabled(sender.tab.id)) {
         sendChangeNotification(request, sender);
       }
     }
@@ -213,7 +243,7 @@
       type: "list",
       title: request.stateData.siteName,
       message: (request.stateData.song || "").trim(),
-      iconUrl: request.stateData.art || chrome.extension.getURL("icon128.png"),
+      iconUrl: request.stateData.art || chrome.runtime.getURL("icon128.png"),
       items: notificationItems
     }, function(notificationId) {
       if(notificationTimeouts[notificationId])
@@ -254,28 +284,27 @@
     });
   });
 
-  storageInitializedCheck.then(function() {
-    // Open info page on install/update
-    chrome.runtime.onInstalled.addListener(function(details) {
-      chrome.storage.sync.get(function(obj) {
-        if(obj["hotkey-open_on_update"] || typeof obj["hotkey-open_on_update"] === "undefined") {
-          if(details.reason == "install") {
-            chrome.tabs.create({
-              url: "http://www.streamkeys.com/guide.html?installed=true"
-            });
-          }
+  // Open info page on install/update
+  chrome.runtime.onInstalled.addListener(function(details) {
+    chrome.storage.sync.get(function(obj) {
+      if(obj["hotkey-open_on_update"] || typeof obj["hotkey-open_on_update"] === "undefined") {
+        if(details.reason == "install") {
+          chrome.tabs.create({
+            url: "http://www.streamkeys.com/guide.html?installed=true"
+          });
         }
-      });
+      }
     });
+  });
 
+  storageInitializedCheck.then(function() {
     // Store commands in global
     chrome.commands.getAll(function(cmds) {
-      window.coms = cmds;
+      commandsList = cmds;
     });
 
-    // Define skSites as a sitelist in global context
-    window.skSites = new Sitelist();
-    window.skSites.loadSettings();
+    // Initialize sitelist settings from storage
+    skSites.loadSettings();
   });
 
 
@@ -333,7 +362,7 @@
    *   tab. The command will be sent to all playing tabs anyway.
    */
   var handleStateData = function(func) {
-    var activeMusicTabs = window.skSites.getActiveMusicTabs();
+    var activeMusicTabs = skSites.getActiveMusicTabs();
     activeMusicTabs.then(function(tabs) {
       if (_.isEmpty(tabs)) {
         func(null, null);
@@ -437,27 +466,25 @@
   /**
    * Catch created audio/video elements/patch js code
    */
-  window.ignoreTabIds = [];
   chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
+    if (!tab || !tab.url) return;
     if (changeInfo.status == "loading") {
-      if (window.skSites.checkMusicSite(tab.url)) {
-        var index = window.ignoreTabIds.indexOf(tabId);
+      if (skSites.checkMusicSite(tab.url)) {
+        var index = ignoreTabIds.indexOf(tabId);
         if (index !== -1) {
-          window.ignoreTabIds.splice(index, 1);
+          ignoreTabIds.splice(index, 1);
           // media interceptor
-          chrome.tabs.executeScript(tabId,
-            {file: "js/modules/MediaInterceptor.js", runAt: "document_start"});
+          executeScriptFile(tabId, "js/modules/MediaInterceptor.js", true);
           console.log("Inject: js/modules/MediaInterceptor.js into: " + tabId);
           // js patches
-          var patchfile = window.skSites.getPatch(tab.url);
+          var patchfile = skSites.getPatch(tab.url);
           if (patchfile) {
-            chrome.tabs.executeScript(tabId,
-              {file: "js/patches/" + patchfile, runAt: "document_start"});
+            executeScriptFile(tabId, "js/patches/" + patchfile, true);
             console.log("Inject: js/patches/" + patchfile + " into: " + tabId);
           }
           return;
         }
-        window.ignoreTabIds.push(tabId);
+        ignoreTabIds.push(tabId);
       }
     }
   });

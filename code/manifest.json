@@ -1,17 +1,22 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "homepage_url": "http://www.streamkeys.com",
   "icons": {"48": "icon48.png", "128": "icon128.png"},
-  "options_page": "html/options.html",
-  "background": {
-    "scripts": ["js/background.js"]
+  "options_ui": {
+    "page": "html/options.html",
+    "open_in_tab": true
   },
-  "browser_action": {
+  "background": {
+    "service_worker": "js/background.js"
+  },
+  "action": {
     "default_title": "Streamkeys",
     "default_popup": "html/popup.html",
     "default_icon": "icon38.png"
   },
-  "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:"
+  },
   "content_scripts": [
     {
       "matches": ["http://*/*", "https://*/*"],
@@ -23,13 +28,19 @@
     }
   ],
   "web_accessible_resources": [
-    "js/inject/hoopla_inject.js",
-    "js/inject/musickit_inject.js",
-    "js/inject/palcomp3_inject.js",
-    "js/inject/seesu_inject.js",
-    "js/controllers/*"
+    {
+      "resources": [
+        "js/inject/hoopla_inject.js",
+        "js/inject/musickit_inject.js",
+        "js/inject/palcomp3_inject.js",
+        "js/inject/seesu_inject.js",
+        "js/controllers/*"
+      ],
+      "matches": ["<all_urls>"]
+    }
   ],
-  "permissions": ["tabs", "storage", "http://*/*", "https://*/*"],
+  "permissions": ["tabs", "storage", "scripting"],
+  "host_permissions": ["http://*/*", "https://*/*"],
   "optional_permissions": [ "notifications", "nativeMessaging"],
   "commands": {
     "playPause": {

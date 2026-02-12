@@ -204,12 +204,16 @@ var MusicTab = (function() {
     };
 
     this.openTab = function() {
-      chrome.tabs.update(parseInt(this.tabId), { selected: true });
+      chrome.tabs.update(parseInt(this.tabId), { active: true });
     };
 
     this.toggleStreamkeysEnabled = function() {
       this.streamkeysEnabled(!this.streamkeysEnabled.peek());
-      chrome.extension.getBackgroundPage().window.skSites.markTabEnabledState(this.tabId, this.streamkeysEnabled.peek());
+      chrome.runtime.sendMessage({
+        action: "mark_tab_enabled_state",
+        tabId: this.tabId,
+        enabled: this.streamkeysEnabled.peek()
+      });
     };
 
     this.displayTime = displayTime;

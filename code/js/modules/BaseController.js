@@ -114,7 +114,7 @@
   BaseController.prototype.injectScript = function (file) {
     var script = document.createElement("script");
     script.setAttribute("type", "text/javascript");
-    if (file.url) { script.setAttribute("src", chrome.extension.getURL(file.url)); }
+    if (file.url) { script.setAttribute("src", chrome.runtime.getURL(file.url)); }
     if (file.script) { script.innerHTML = file.script; }
     (document.head || document.documentElement).appendChild(script);
   };
