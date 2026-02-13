@@ -5,7 +5,12 @@
   var CURRENT_AUDIO_ATTR = "data-streamkeys-wa-current-audio";
   var CURRENT_AUDIO_TS_ATTR = "data-streamkeys-wa-current-audio-ts";
   var HELPER_READY_ATTR = "data-streamkeys-wa-helper-ready";
+  var HELPER_HAS_AUDIO_ATTR = "data-streamkeys-wa-helper-has-audio";
   var HELPER_CMD_EVENT = "streamkeys-wa-cmd";
+
+  function setHasAudio(value) {
+    document.documentElement.setAttribute(HELPER_HAS_AUDIO_ATTR, value ? "1" : "0");
+  }
 
   function markCurrentAudio(audio) {
     var current;
@@ -14,6 +19,7 @@
     if (!audio) return;
 
     window._waCurrentAudio = audio;
+    setHasAudio(true);
     current = document.querySelectorAll("audio[" + CURRENT_AUDIO_ATTR + "='1']");
     for (i = 0; i < current.length; i++) {
       current[i].removeAttribute(CURRENT_AUDIO_ATTR);
@@ -49,10 +55,14 @@
 
   function withCurrentAudio(callback) {
     var audio = window._waCurrentAudio;
-    if (!audio) return false;
+    if (!audio) {
+      setHasAudio(false);
+      return false;
+    }
 
     try {
       callback(audio);
+      setHasAudio(true);
       return true;
     } catch (e) {
       sk_log("WebWhatsApp inject: helper command failed", e, true);
@@ -91,5 +101,6 @@
   installPlayTrap();
   document.addEventListener(HELPER_CMD_EVENT, onCommand);
   document.documentElement.setAttribute(HELPER_READY_ATTR, "1");
+  setHasAudio(!!window._waCurrentAudio);
   sk_log("WebWhatsApp inject: helper ready");
 })();

@@ -8,6 +8,7 @@
   var WA_PLAY_SELECTOR = "[aria-label='Sprachnachricht abspielen']";
   var WA_PAUSE_SELECTOR = "[aria-label='Sprachnachricht pausieren']";
   var HELPER_READY_ATTR = "data-streamkeys-wa-helper-ready";
+  var HELPER_HAS_AUDIO_ATTR = "data-streamkeys-wa-helper-has-audio";
   var HELPER_CMD_EVENT = "streamkeys-wa-cmd";
 
   var currentVoiceButtonIndex = -1;
@@ -78,7 +79,11 @@
     return document.documentElement.getAttribute(HELPER_READY_ATTR) === "1";
   }
 
-  function callPageHelper(cmd, seconds) {
+  function helperHasCurrentAudio() {
+    return document.documentElement.getAttribute(HELPER_HAS_AUDIO_ATTR) === "1";
+  }
+
+  function dispatchPageHelper(cmd, seconds) {
     if (!isHelperReady()) return false;
 
     document.dispatchEvent(new CustomEvent(HELPER_CMD_EVENT, {
@@ -122,12 +127,6 @@
   };
 
   controller.playPause = function () {
-    // Prefer toggling the currently trapped audio in page context.
-    if (callPageHelper("toggle")) {
-      sk_log("WebWhatsApp: playPause via page helper");
-      return;
-    }
-
     var buttons = collectVoiceButtons();
     if (!buttons.length) {
       sk_log("WebWhatsApp: playPause skipped, no voice buttons found", null, true);
@@ -152,7 +151,7 @@
   };
 
   controller.seek = function (seconds) {
-    if (callPageHelper("seek", seconds)) {
+    if (dispatchPageHelper("seek", seconds) && helperHasCurrentAudio()) {
       sk_log("WebWhatsApp: seek via page helper " + seconds + "s");
       return;
     }
