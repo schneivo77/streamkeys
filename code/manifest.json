@@ -34,6 +34,7 @@
         "js/inject/musickit_inject.js",
         "js/inject/palcomp3_inject.js",
         "js/inject/seesu_inject.js",
+        "js/inject/webwhatsapp_inject.js",
         "js/controllers/*"
       ],
       "matches": ["<all_urls>"]
