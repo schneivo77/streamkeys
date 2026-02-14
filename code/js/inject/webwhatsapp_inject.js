@@ -6,10 +6,29 @@
   var CURRENT_AUDIO_TS_ATTR = "data-streamkeys-wa-current-audio-ts";
   var HELPER_READY_ATTR = "data-streamkeys-wa-helper-ready";
   var HELPER_HAS_AUDIO_ATTR = "data-streamkeys-wa-helper-has-audio";
+  var HELPER_ENDED_TS_ATTR = "data-streamkeys-wa-audio-ended-ts";
+  var HELPER_CURRENT_KEY_ATTR = "data-streamkeys-wa-current-key";
   var HELPER_CMD_EVENT = "streamkeys-wa-cmd";
 
   function setHasAudio(value) {
     document.documentElement.setAttribute(HELPER_HAS_AUDIO_ATTR, value ? "1" : "0");
+  }
+
+  function setCurrentKey(value) {
+    document.documentElement.setAttribute(HELPER_CURRENT_KEY_ATTR, value || "");
+  }
+
+  function getAudioMessageKey(audio) {
+    var row;
+    var msgId;
+
+    if (!audio) return "";
+    row = audio.closest("[data-id], [data-testid='msg-container'], [role='row']");
+    if (!row) return "";
+
+    msgId = row.getAttribute("data-id") || row.getAttribute("data-testid");
+    if (!msgId) return "";
+    return "msg:" + msgId;
   }
 
   function markCurrentAudio(audio) {
@@ -20,6 +39,8 @@
 
     window._waCurrentAudio = audio;
     setHasAudio(true);
+    attachEndedListener(audio);
+    setCurrentKey(getAudioMessageKey(audio));
     current = document.querySelectorAll("audio[" + CURRENT_AUDIO_ATTR + "='1']");
     for (i = 0; i < current.length; i++) {
       current[i].removeAttribute(CURRENT_AUDIO_ATTR);
@@ -27,6 +48,17 @@
 
     audio.setAttribute(CURRENT_AUDIO_ATTR, "1");
     audio.setAttribute(CURRENT_AUDIO_TS_ATTR, String(Date.now()));
+  }
+
+  function attachEndedListener(audio) {
+    if (!audio || audio.__streamkeysWaEndedHooked) return;
+
+    audio.__streamkeysWaEndedHooked = true;
+    audio.addEventListener("ended", function () {
+      document.documentElement.setAttribute(HELPER_ENDED_TS_ATTR, String(Date.now()));
+      setHasAudio(true);
+      sk_log("WebWhatsApp inject: current audio ended");
+    });
   }
 
   function installPlayTrap() {
@@ -57,12 +89,14 @@
     var audio = window._waCurrentAudio;
     if (!audio) {
       setHasAudio(false);
+      setCurrentKey("");
       return false;
     }
 
     try {
       callback(audio);
       setHasAudio(true);
+      setCurrentKey(getAudioMessageKey(audio));
       return true;
     } catch (e) {
       sk_log("WebWhatsApp inject: helper command failed", e, true);
@@ -102,5 +136,6 @@
   document.addEventListener(HELPER_CMD_EVENT, onCommand);
   document.documentElement.setAttribute(HELPER_READY_ATTR, "1");
   setHasAudio(!!window._waCurrentAudio);
+  setCurrentKey(getAudioMessageKey(window._waCurrentAudio));
   sk_log("WebWhatsApp inject: helper ready");
 })();

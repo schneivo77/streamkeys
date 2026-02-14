@@ -7,11 +7,16 @@
   var CURRENT_AUDIO_TS_ATTR = "data-streamkeys-wa-current-audio-ts";
   var WA_PLAY_SELECTOR = "[aria-label='Sprachnachricht abspielen']";
   var WA_PAUSE_SELECTOR = "[aria-label='Sprachnachricht pausieren']";
+  var WA_VOICE_SELECTOR = WA_PLAY_SELECTOR + "," + WA_PAUSE_SELECTOR;
   var HELPER_READY_ATTR = "data-streamkeys-wa-helper-ready";
   var HELPER_HAS_AUDIO_ATTR = "data-streamkeys-wa-helper-has-audio";
+  var HELPER_ENDED_TS_ATTR = "data-streamkeys-wa-audio-ended-ts";
+  var HELPER_CURRENT_KEY_ATTR = "data-streamkeys-wa-current-key";
   var HELPER_CMD_EVENT = "streamkeys-wa-cmd";
 
   var currentVoiceButtonIndex = -1;
+  var currentVoiceKey = null;
+  var lastHandledEndedTs = null;
 
   var controller = new BaseController({
     siteName: "Web WhatsApp",
@@ -21,28 +26,40 @@
     overridePlayNext: true
   });
 
-  function dedupeButtons(buttons) {
-    var unique = [];
-    var i;
-    for (i = 0; i < buttons.length; i++) {
-      if (unique.indexOf(buttons[i]) === -1) unique.push(buttons[i]);
+  function getVoiceMessageKey(button, fallbackIndex) {
+    var row;
+    var msgId;
+    var dataId;
+
+    if (!button) return "";
+
+    row = button.closest("[data-id], [data-testid='msg-container'], [role='row']");
+    if (row) {
+      msgId = row.getAttribute("data-id") || row.getAttribute("data-testid");
+      if (msgId) return "msg:" + msgId;
     }
-    return unique;
+
+    dataId = button.getAttribute("data-id");
+    if (dataId) return "btn:" + dataId;
+
+    return "idx:" + String(fallbackIndex);
   }
 
-  function collectVoiceButtons() {
-    var buttons = [];
+  function collectVoiceEntries() {
+    var buttons = document.querySelectorAll(WA_VOICE_SELECTOR);
+    var entries = [];
     var i;
 
-    var waPlayButtons = document.querySelectorAll(WA_PLAY_SELECTOR);
-    for (i = 0; i < waPlayButtons.length; i++) buttons.push(waPlayButtons[i]);
+    for (i = 0; i < buttons.length; i++) {
+      entries.push({
+        button: buttons[i],
+        key: getVoiceMessageKey(buttons[i], i),
+        isPause: buttons[i].matches(WA_PAUSE_SELECTOR)
+      });
+    }
 
-    var waPauseButtons = document.querySelectorAll(WA_PAUSE_SELECTOR);
-    for (i = 0; i < waPauseButtons.length; i++) buttons.push(waPauseButtons[i]);
-
-    buttons = dedupeButtons(buttons);
-    sk_log("WebWhatsApp: found voice buttons: " + buttons.length);
-    return buttons;
+    sk_log("WebWhatsApp: found voice buttons: " + entries.length);
+    return entries;
   }
 
   function getCurrentAudio() {
@@ -83,6 +100,14 @@
     return document.documentElement.getAttribute(HELPER_HAS_AUDIO_ATTR) === "1";
   }
 
+  function getHelperEndedTs() {
+    return document.documentElement.getAttribute(HELPER_ENDED_TS_ATTR) || "";
+  }
+
+  function getHelperCurrentKey() {
+    return document.documentElement.getAttribute(HELPER_CURRENT_KEY_ATTR) || "";
+  }
+
   function dispatchPageHelper(cmd, seconds) {
     if (!isHelperReady()) return false;
 
@@ -92,27 +117,60 @@
         seconds: (typeof seconds === "number" ? seconds : 0)
       }
     }));
+
     return true;
   }
 
-  function clickVoiceButton(button, reason) {
-    if (!button) {
+  function clickVoiceEntry(entry, reason, index) {
+    var label;
+
+    if (!entry || !entry.button) {
       sk_log("WebWhatsApp: no voice button for " + reason, null, true);
       return false;
     }
 
-    var label = button.getAttribute("aria-label") || "(no aria-label)";
-    sk_log("WebWhatsApp: click " + reason + " label=" + label);
-    button.click();
+    label = entry.button.getAttribute("aria-label") || "(no aria-label)";
+    sk_log("WebWhatsApp: click " + reason + " label=" + label + " key=" + entry.key + " index=" + index);
+    entry.button.click();
+
+    currentVoiceButtonIndex = index;
+    currentVoiceKey = entry.key;
     return true;
   }
 
-  function getFirstPauseButtonIndex(buttons) {
+  function getFirstPauseEntryIndex(entries) {
     var i;
-    for (i = 0; i < buttons.length; i++) {
-      if (buttons[i].matches(WA_PAUSE_SELECTOR)) return i;
+    for (i = 0; i < entries.length; i++) {
+      if (entries[i].isPause) return i;
     }
     return -1;
+  }
+
+  function getEntryIndexByKey(entries, key) {
+    var i;
+    if (!key) return -1;
+    for (i = 0; i < entries.length; i++) {
+      if (entries[i].key === key) return i;
+    }
+    return -1;
+  }
+
+  function resolveCurrentEntryIndex(entries) {
+    var helperKey = getHelperCurrentKey();
+    var helperKeyIndex = getEntryIndexByKey(entries, helperKey);
+    if (helperKeyIndex >= 0) return helperKeyIndex;
+
+    var pauseIndex = getFirstPauseEntryIndex(entries);
+    if (pauseIndex >= 0) return pauseIndex;
+
+    var keyIndex = getEntryIndexByKey(entries, currentVoiceKey);
+    if (keyIndex >= 0) return keyIndex;
+
+    if (currentVoiceButtonIndex >= 0 && currentVoiceButtonIndex < entries.length) {
+      return currentVoiceButtonIndex;
+    }
+
+    return entries.length ? 0 : -1;
   }
 
   controller.getMedia = function () {
@@ -127,27 +185,25 @@
   };
 
   controller.playPause = function () {
-    var buttons = collectVoiceButtons();
-    if (!buttons.length) {
+    // Once we have a trapped audio element, toggle it directly to avoid button list drift.
+    if (helperHasCurrentAudio() && dispatchPageHelper("toggle")) {
+      sk_log("WebWhatsApp: playPause via helper toggle");
+      return;
+    }
+
+    var entries = collectVoiceEntries();
+    if (!entries.length) {
       sk_log("WebWhatsApp: playPause skipped, no voice buttons found", null, true);
       return;
     }
 
-    // Deterministic fallback: pause active message first, then resume last selected one.
-    var pauseIndex = getFirstPauseButtonIndex(buttons);
-    if (pauseIndex >= 0) {
-      currentVoiceButtonIndex = pauseIndex;
-      clickVoiceButton(buttons[pauseIndex], "playPause.pauseActive");
+    var index = resolveCurrentEntryIndex(entries);
+    if (index < 0) {
+      sk_log("WebWhatsApp: playPause skipped, no current entry", null, true);
       return;
     }
 
-    if (currentVoiceButtonIndex >= 0 && currentVoiceButtonIndex < buttons.length) {
-      clickVoiceButton(buttons[currentVoiceButtonIndex], "playPause.resumeSelected");
-      return;
-    }
-
-    currentVoiceButtonIndex = 0;
-    clickVoiceButton(buttons[0], "playPause.startFirst");
+    clickVoiceEntry(entries[index], "playPause", index);
   };
 
   controller.seek = function (seconds) {
@@ -171,50 +227,70 @@
   };
 
   controller.playNext = function () {
-    var buttons = collectVoiceButtons();
-    if (!buttons.length) {
+    var entries = collectVoiceEntries();
+    if (!entries.length) {
       sk_log("WebWhatsApp: playNext skipped, no voice buttons found", null, true);
       return;
     }
 
-    if (currentVoiceButtonIndex < 0) {
-      var pauseIndex = getFirstPauseButtonIndex(buttons);
-      currentVoiceButtonIndex = pauseIndex >= 0 ? pauseIndex : 0;
+    var index = resolveCurrentEntryIndex(entries);
+    if (index < 0) index = 0;
+
+    var nextIndex = Math.min(index + 1, entries.length - 1);
+    sk_log("WebWhatsApp: playNext index " + index + " -> " + nextIndex);
+
+    // Prevent WhatsApp auto-queue from jumping over the first target on manual next.
+    if (this.isPlaying()) {
+      dispatchPageHelper("toggle");
     }
 
-    var nextIndex = Math.min(currentVoiceButtonIndex + 1, buttons.length - 1);
-    sk_log("WebWhatsApp: playNext index " + currentVoiceButtonIndex + " -> " + nextIndex);
-    currentVoiceButtonIndex = nextIndex;
-    clickVoiceButton(buttons[nextIndex], "playNext");
+    clickVoiceEntry(entries[nextIndex], "playNext", nextIndex);
   };
 
   controller.playPrev = function () {
-    var buttons = collectVoiceButtons();
-    if (!buttons.length) {
+    var entries = collectVoiceEntries();
+    if (!entries.length) {
       sk_log("WebWhatsApp: playPrev skipped, no voice buttons found", null, true);
       return;
     }
 
-    if (currentVoiceButtonIndex < 0) {
-      var pauseIndex = getFirstPauseButtonIndex(buttons);
-      currentVoiceButtonIndex = pauseIndex >= 0 ? pauseIndex : 0;
+    var index = resolveCurrentEntryIndex(entries);
+    if (index < 0) index = 0;
+
+    var prevIndex = Math.max(index - 1, 0);
+    sk_log("WebWhatsApp: playPrev index " + index + " -> " + prevIndex);
+
+    // Prevent WhatsApp auto-queue from jumping over the first target on manual prev.
+    if (this.isPlaying()) {
+      dispatchPageHelper("toggle");
     }
 
-    var prevIndex = Math.max(currentVoiceButtonIndex - 1, 0);
-    sk_log("WebWhatsApp: playPrev index " + currentVoiceButtonIndex + " -> " + prevIndex);
-    currentVoiceButtonIndex = prevIndex;
-    clickVoiceButton(buttons[prevIndex], "playPrev");
+    clickVoiceEntry(entries[prevIndex], "playPrev", prevIndex);
   };
 
   controller.checkPlayer = function () {
-    var buttons = collectVoiceButtons();
-    if (!buttons.length) {
+    var entries = collectVoiceEntries();
+    if (!entries.length) {
       currentVoiceButtonIndex = -1;
+      currentVoiceKey = null;
       return;
     }
 
-    if (currentVoiceButtonIndex >= buttons.length) {
-      currentVoiceButtonIndex = buttons.length - 1;
+    var helperKey = getHelperCurrentKey();
+    var helperIndex = getEntryIndexByKey(entries, helperKey);
+    if (helperIndex >= 0) {
+      currentVoiceButtonIndex = helperIndex;
+      currentVoiceKey = entries[helperIndex].key;
+    }
+
+    var endedTs = getHelperEndedTs();
+    if (endedTs && endedTs !== lastHandledEndedTs) {
+      lastHandledEndedTs = endedTs;
+      sk_log("WebWhatsApp: detected message end/auto-advance");
+    }
+
+    if (currentVoiceButtonIndex >= entries.length) {
+      currentVoiceButtonIndex = entries.length - 1;
     }
   };
 
